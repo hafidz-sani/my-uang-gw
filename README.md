@@ -22,7 +22,7 @@ Aplikasi **my-uang-gw** dirancang berbasis **Google Apps Script Web App** dengan
 
 ## 2. Langkah 1: Persiapan Google Sheets
 
-1. Buka [Google Sheets](https://sheets.new) baru.
+1. Buka [Google Sheets](https://docs.google.com/spreadsheets) baru.
 2. Beri nama spreadsheet: **`DB_my-uang-gw`**.
 3. Pastikan sheet pertama bernama **`Transaksi`**.
 4. Masukkan nama kolom pada baris ke-1 (Header):
@@ -635,7 +635,7 @@ Agar Google Apps Script otomatis mengirim rekap **Harian**, **Mingguan**, dan **
 1. Di editor Apps Script, klik tombol **Terapkan (Deploy)** di kanan atas > **Penerapan Baru (New deployment)**.
 2. Pilih jenis penerapan: **Aplikasi Web (Web app)**.
 3. Konfigurasi:
-   * **Deskripsi**: `my-uang-gw v2.0 (Telegram Integrated)`
+   * **Deskripsi**: `my-uang-gw v1.0`
    * **Jalankan sebagai (Execute as)**: `Saya (email Anda)`
    * **Siapa yang memiliki akses (Who has access)**: `Siapa saja (Anyone)`
 4. Klik **Terapkan (Deploy)**.
