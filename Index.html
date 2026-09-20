@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>my-uang-gw</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-10">
+    <div class="max-w-md mx-auto px-4 py-3.5 flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-bold tracking-tight">my-uang-gw</h1>
+        <p class="text-xs text-indigo-200">Catat rapi, dompet aman</p>
+      </div>
+      <button onclick="muatData()" class="text-xs bg-indigo-500 hover:bg-indigo-700 px-3 py-1.5 rounded-lg font-medium transition">
+        Segarkan
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 mt-5 space-y-5">
+    
+    <!-- Kartu Saldo & Ringkasan -->
+    <section class="bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white rounded-2xl p-5 shadow-lg shadow-indigo-100">
+      <p class="text-xs text-indigo-200 font-medium">Total Saldo Saat Ini</p>
+      <h2 id="saldoTotal" class="text-2xl font-bold mt-1 tracking-tight">Memuat...</h2>
+
+      <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-indigo-400/40">
+        <div>
+          <span class="text-[11px] text-indigo-200 block">Total Pemasukan</span>
+          <span id="txtPemasukan" class="text-sm font-semibold text-emerald-300">Rp 0</span>
+        </div>
+        <div>
+          <span class="text-[11px] text-indigo-200 block">Total Pengeluaran</span>
+          <span id="txtPengeluaran" class="text-sm font-semibold text-rose-300">Rp 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Formulir Catat Transaksi -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+      <h3 class="text-sm font-bold text-slate-700 mb-3">Catat Transaksi Baru</h3>
+      
+      <form id="formTransaksi" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+        
+        <!-- Toggle Tipe Transaksi -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+          <label class="cursor-pointer text-center">
+            <input type="radio" name="tipe" value="Pengeluaran" checked class="peer sr-only" onchange="updateKategoriOptions()">
+            <div class="py-2 text-xs font-semibold rounded-lg text-slate-600 peer-checked:bg-rose-500 peer-checked:text-white transition">
+              Pengeluaran
+            </div>
+          </label>
+          <label class="cursor-pointer text-center">
+            <input type="radio" name="tipe" value="Pemasukan" class="peer sr-only" onchange="updateKategoriOptions()">
+            <div class="py-2 text-xs font-semibold rounded-lg text-slate-600 peer-checked:bg-emerald-500 peer-checked:text-white transition">
+              Pemasukan
+            </div>
+          </label>
+        </div>
+
+        <!-- Nominal -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp)</label>
+          <input type="number" id="nominal" required placeholder="0" min="1"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Kategori & Tanggal -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
+            <select id="kategori" required
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+            <input type="date" id="tanggal" required
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <!-- Keterangan / Catatan -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan (Opsional)</label>
+          <input type="text" id="keterangan" placeholder="Contoh: Makan siang, Gaji, Kopi"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <button type="submit" id="btnSubmit"
+          class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md transition disabled:opacity-50">
+          Simpan Transaksi
+        </button>
+      </form>
+    </section>
+
+    <!-- Riwayat Transaksi -->
+    <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-bold text-slate-700">10 Transaksi Terakhir</h3>
+      </div>
+      <div id="listRiwayat" class="divide-y divide-slate-100 text-sm">
+        <p class="text-xs text-slate-400 py-3 text-center">Memuat riwayat transaksi...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const kategoriPengeluaran = ['Makan & Minum', 'Transportasi', 'Belanja', 'Tagihan & Langganan', 'Hiburan', 'Kesehatan', 'Lainnya'];
+    const kategoriPemasukan = ['Gaji', 'Freelance / Bisnis', 'Investasi', 'Bonus / Hadiah', 'Lainnya'];
+
+    // Inisialisasi tanggal hari ini
+    document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+    function formatRupiah(val) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    }
+
+    function updateKategoriOptions() {
+      const tipe = document.querySelector('input[name="tipe"]:checked').value;
+      const selectKategori = document.getElementById('kategori');
+      const opsi = (tipe === 'Pemasukan') ? kategoriPemasukan : kategoriPengeluaran;
+
+      selectKategori.innerHTML = opsi.map(k => `<option value="${k}">${k}</option>`).join('');
+    }
+
+    function muatData() {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res.status === 'success') {
+            document.getElementById('saldoTotal').innerText = formatRupiah(res.saldo);
+            document.getElementById('txtPemasukan').innerText = formatRupiah(res.totalPemasukan);
+            document.getElementById('txtPengeluaran').innerText = formatRupiah(res.totalPengeluaran);
+
+            const container = document.getElementById('listRiwayat');
+            if (!res.riwayat || res.riwayat.length === 0) {
+              container.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Belum ada transaksi.</p>`;
+              return;
+            }
+
+            container.innerHTML = res.riwayat.map(item => {
+              const isMasuk = item.tipe === 'Pemasukan';
+              const badgeClass = isMasuk ? 'text-emerald-600' : 'text-rose-600';
+              const sign = isMasuk ? '+' : '-';
+
+              return `
+                <div class="py-3 flex justify-between items-start">
+                  <div>
+                    <p class="font-medium text-slate-800 text-xs">${item.kategori}</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">${item.keterangan || '-'} • <span class="text-slate-500">${item.tanggal}</span></p>
+                  </div>
+                  <div class="text-right">
+                    <span class="font-semibold text-xs ${badgeClass}">
+                      ${sign} ${formatRupiah(item.nominal)}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        })
+        .withFailureHandler(err => {
+          alert('Gagal memuat data: ' + err.message);
+        })
+        .getDashboardData();
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerText = 'Menyimpan...';
+
+      const payload = {
+        tipe: document.querySelector('input[name="tipe"]:checked').value,
+        nominal: document.getElementById('nominal').value,
+        kategori: document.getElementById('kategori').value,
+        tanggal: document.getElementById('tanggal').value,
+        keterangan: document.getElementById('keterangan').value
+      };
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          btn.disabled = false;
+          btn.innerText = 'Simpan Transaksi';
+          if (res.status === 'success') {
+            document.getElementById('formTransaksi').reset();
+            document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+            updateKategoriOptions();
+            muatData();
+          } else {
+            alert('Error: ' + res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          btn.innerText = 'Simpan Transaksi';
+          alert('Gagal mengirim data: ' + err.message);
+        })
+        .simpanTransaksi(payload);
+    }
+
+    // Eksekusi awal saat aplikasi dibuka
+    updateKategoriOptions();
+    muatData();
+  </script>
+</body>
+</html>
