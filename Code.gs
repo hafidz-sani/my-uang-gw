@@ -33,10 +33,10 @@ function formatRupiahServer(angka) {
   return 'Rp ' + Number(angka).toLocaleString('id-ID');
 }
 
-// Fungsi pengiriman pesan ke Telegram
+// Fungsi pengiriman pesan ke Telegram dengan penanganan log respon lengkap
 function kirimPesanTelegram(pesanHtml) {
   if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === 'MASUKKAN_BOT_TOKEN_TELEGRAM') {
-    Logger.log('Token Telegram belum dikonfigurasi.');
+    Logger.log('[Peringatan] Token Telegram belum dikonfigurasi.');
     return;
   }
   
@@ -55,9 +55,16 @@ function kirimPesanTelegram(pesanHtml) {
   };
 
   try {
-    UrlFetchApp.fetch(url, options);
+    const respon = UrlFetchApp.fetch(url, options);
+    const hasil = JSON.parse(respon.getContentText());
+    
+    if (!hasil.ok) {
+      Logger.log('Telegram API Error: ' + hasil.description);
+    } else {
+      Logger.log('Pesan Telegram berhasil terkirim ke chat ID: ' + TELEGRAM_CHAT_ID);
+    }
   } catch (err) {
-    Logger.log('Gagal mengirim Telegram: ' + err.message);
+    Logger.log('Gagal menjalankan UrlFetchApp: ' + err.message);
   }
 }
 
@@ -150,10 +157,10 @@ function normalisasiTanggal(tgl) {
 }
 
 // ==========================================
-// REKAP OTOMATIS TELEGRAM
+// REKAP OTOMATIS TELEGRAM (BEBAS TAG HTML TIDAK VALID)
 // ==========================================
 
-// 3. Rekap Harian (Dijalankan tiap malam, misal jam 21:00)
+// 3. Rekap Harian (Dijalankan tiap malam via Time-Driven Trigger)
 function kirimRekapHarian() {
   const sheet = getSheetTransaksi();
   const rows = sheet.getDataRange().getValues();
@@ -178,13 +185,14 @@ function kirimRekapHarian() {
   const selisih = pemasukanHariIni - pengeluaranHariIni;
   const statusHari = selisih >= 0 ? '🟢 Surplus' : '🔴 Defisit';
 
+  // Catatan: Telegram Bot API TIDAK mendukung tag <font>. Gunakan tag standar <b>, <i>, atau emoji.
   const pesan = 
     `<b>📊 REKAP KEUANGAN HARIAN</b>\n` +
     `📅 <i>${todayStr}</i>\n` +
     `────────────────────\n` +
     `• Total Transaksi: <b>${jumlahTrx}</b>\n` +
-    `• Pemasukan: <font color="#22c55e"><b>${formatRupiahServer(pemasukanHariIni)}</b></font>\n` +
-    `• Pengeluaran: <font color="#ef4444"><b>${formatRupiahServer(pengeluaranHariIni)}</b></font>\n` +
+    `• Pemasukan: 🟢 <b>${formatRupiahServer(pemasukanHariIni)}</b>\n` +
+    `• Pengeluaran: 🔴 <b>${formatRupiahServer(pengeluaranHariIni)}</b>\n` +
     `────────────────────\n` +
     `• Hasil Hari Ini: <b>${formatRupiahServer(selisih)}</b> (${statusHari})\n\n` +
     `<i>Selalu kontrol pengeluaran harianmu! 🚀</i>`;
@@ -192,7 +200,7 @@ function kirimRekapHarian() {
   kirimPesanTelegram(pesan);
 }
 
-// 4. Rekap Mingguan (Dijalankan tiap akhir pekan, misal Minggu malam)
+// 4. Rekap Mingguan (Dijalankan tiap akhir pekan via Trigger)
 function kirimRekapMingguan() {
   const sheet = getSheetTransaksi();
   const rows = sheet.getDataRange().getValues();
@@ -221,7 +229,6 @@ function kirimRekapMingguan() {
     }
   }
 
-  // Rincian kategori pengeluaran terbesar
   let teksKategori = '';
   const sortedKat = Object.entries(kategoriPengeluaran).sort((a, b) => b[1] - a[1]);
   if (sortedKat.length > 0) {
@@ -233,8 +240,8 @@ function kirimRekapMingguan() {
     `<b>📈 REKAP KEUANGAN MINGGUAN (7 HARI)</b>\n` +
     `📅 <i>${batasAwalStr} s.d ${hariIniStr}</i>\n` +
     `────────────────────\n` +
-    `• Total Pemasukan : <b>${formatRupiahServer(pemasukan)}</b>\n` +
-    `• Total Pengeluaran: <b>${formatRupiahServer(pengeluaran)}</b>\n` +
+    `• Total Pemasukan : 🟢 <b>${formatRupiahServer(pemasukan)}</b>\n` +
+    `• Total Pengeluaran: 🔴 <b>${formatRupiahServer(pengeluaran)}</b>\n` +
     `• Selisih Bersih   : <b>${formatRupiahServer(pemasukan - pengeluaran)}</b>\n` +
     `────────────────────` +
     teksKategori +
@@ -248,7 +255,6 @@ function kirimRekapBulanan() {
   const sheet = getSheetTransaksi();
   const rows = sheet.getDataRange().getValues();
   
-  // Format bulan ini: "yyyy-MM"
   const bulanIniPrefix = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM');
   const namaBulan = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'MMMM yyyy');
 
@@ -261,11 +267,9 @@ function kirimRekapBulanan() {
     const nilai = Number(nominal) || 0;
     const tglBaris = normalisasiTanggal(tgl);
 
-    // Akumulasi keseluruhan saldo
     if (tipe === 'Pemasukan') totalSaldoAkumulasi += nilai;
     if (tipe === 'Pengeluaran') totalSaldoAkumulasi -= nilai;
 
-    // Filter khusus bulan berjalan
     if (tglBaris.startsWith(bulanIniPrefix)) {
       if (tipe === 'Pemasukan') pemasukan += nilai;
       if (tipe === 'Pengeluaran') pengeluaran += nilai;
@@ -280,8 +284,8 @@ function kirimRekapBulanan() {
     `<b>🏆 REKAP KEUANGAN BULANAN</b>\n` +
     `🗓 Periode: <b>${namaBulan}</b>\n` +
     `────────────────────\n` +
-    `• Pemasukan Bulan Ini  : <b>${formatRupiahServer(pemasukan)}</b>\n` +
-    `• Pengeluaran Bulan Ini: <b>${formatRupiahServer(pengeluaran)}</b>\n` +
+    `• Pemasukan Bulan Ini  : 🟢 <b>${formatRupiahServer(pemasukan)}</b>\n` +
+    `• Pengeluaran Bulan Ini: 🔴 <b>${formatRupiahServer(pengeluaran)}</b>\n` +
     `• Selisih (Net Cash)   : <b>${formatRupiahServer(pemasukan - pengeluaran)}</b>\n` +
     `• Tabungan (Savings Rate): <b>${rasioTabungan}%</b>\n` +
     `────────────────────\n` +
